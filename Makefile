@@ -12,7 +12,7 @@ OBJ = $(patsubst $(SRCD)/%.c,$(OBJD)/%.o,$(SRC))
 EXE = $(OUTD)/dyno
 MODULES = simple
 
-CFLAGS =
+CFLAGS = -O3 -Wall
 LDFLAGS = -Wl,-rpath,$(PWD)/$(MODULE_OUTD)
 
 all: $(OUTD) $(OBJD) $(MODULE_OUTD) $(EXE) $(MODULES)
@@ -25,7 +25,7 @@ $(EXE): $(OBJ)
 	$(CC) -o $(EXE) $(LDFLAGS) $^
 
 $(OBJD)/%.o: $(SRCD)/%.c
-	$(CC) -c -o $@ $^
+	$(CC) -c $(CFLAGS) -o $@ $^
 
 $(OBJD) $(OUTD) $(MODULE_OUTD):
 	@mkdir -p $@

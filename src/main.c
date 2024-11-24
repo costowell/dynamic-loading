@@ -1,28 +1,44 @@
 #include "modules/module.h"
 #include <dlfcn.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
+#include <unistd.h>
 
-#define STRLEN 80
+#define COLOR_COUNT 160
+#define SEC_TO_MICROSEC 1000000.0f
+#define MICROSECONDS_PER_FRAME (1.0f / 60.0f) * SEC_TO_MICROSEC
 
 module_data_t *init_module_data() {
   module_data_t *data = calloc(1, sizeof(module_data_t));
-  data->buf = calloc(STRLEN + 1, sizeof(char));
-  data->bufsize = STRLEN;
-
-  pthread_mutex_init(&data->mutex, NULL);
+  data->colors = calloc(COLOR_COUNT, sizeof(color_t));
+  data->quantity = COLOR_COUNT;
 
   return data;
 }
 
-void *main_loop(void *d) {
-  module_data_t *data = (module_data_t *)d;
+void draw_loop(module_data_t *data, int (*module_update)()) {
+  struct timeval frame_start, frame_end;
+  double elapsed_us, sleep_us = 0;
+  printf("\033[?25l");
   while (true) {
-    pthread_mutex_lock(&data->mutex);
-    printf("%s\r", data->buf);
-    pthread_mutex_unlock(&data->mutex);
+    gettimeofday(&frame_start, NULL);
+    if (module_update())
+      return;
+    for (int i = 0; i < data->quantity; ++i) {
+      color_t *color = &data->colors[i];
+      printf("\033[48;2;%d;%d;%dm ", color->r, color->g, color->b);
+    }
+    printf("\r");
+    usleep(sleep_us);
+    gettimeofday(&frame_end, NULL);
+
+    elapsed_us = (frame_end.tv_sec - frame_start.tv_sec) * SEC_TO_MICROSEC;
+    elapsed_us += (frame_end.tv_usec - frame_start.tv_usec);
+    sleep_us += MICROSECONDS_PER_FRAME - elapsed_us;
   }
 }
 
@@ -34,10 +50,11 @@ int main() {
   }
   dlerror();
 
-  int (*run_func)(module_data_t *) = (int (*)())dlsym(handle, "run");
+  int (*module_init)(module_data_t *) =
+      (int (*)(module_data_t *))dlsym(handle, "module_init");
+  int (*module_update)() = (int (*)())dlsym(handle, "module_update");
 
   module_data_t *data = init_module_data();
-  pthread_t thread;
-  pthread_create(&thread, NULL, &main_loop, data);
-  run_func(data);
+  module_init(data);
+  draw_loop(data, module_update);
 }
