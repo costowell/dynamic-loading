@@ -20,10 +20,18 @@ module_data_t *init_module_data() {
   return data;
 }
 
+void cursor_visible(bool visible) {
+  if (visible) {
+    printf("\033[?25h");
+  } else {
+    printf("\033[?25l");
+  }
+}
+
 void draw_loop(module_data_t *data, int (*module_update)()) {
   struct timeval frame_start, frame_end;
   double elapsed_us, sleep_us = 0;
-  printf("\033[?25l");
+  cursor_visible(false);
   while (true) {
     gettimeofday(&frame_start, NULL);
     if (module_update())
@@ -42,7 +50,15 @@ void draw_loop(module_data_t *data, int (*module_update)()) {
   }
 }
 
+void handle_sigint(int sig) {
+  cursor_visible(true);
+  exit(EXIT_FAILURE);
+}
+
+void setup_signal_handlers() { signal(SIGINT, handle_sigint); }
+
 int main() {
+  setup_signal_handlers();
   void *handle = dlopen("dyno_simple.so", RTLD_LAZY);
   if (!handle) {
     fprintf(stderr, "dlopen() %s\n", dlerror());
