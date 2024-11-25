@@ -1,3 +1,4 @@
+#include "modules.h"
 #include "modules/module.h"
 #include <dlfcn.h>
 #include <signal.h>
@@ -8,7 +9,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#define COLOR_COUNT 160
+#define COLOR_COUNT 200
 #define SEC_TO_MICROSEC 1000000.0f
 #define MICROSECONDS_PER_FRAME (1.0f / 60.0f) * SEC_TO_MICROSEC
 
@@ -59,6 +60,12 @@ void setup_signal_handlers() { signal(SIGINT, handle_sigint); }
 
 int main() {
   setup_signal_handlers();
+  module_t **modules = list_modules();
+  while (*modules) {
+    printf("%s\n", (*modules)->path);
+    modules++;
+  }
+  return EXIT_SUCCESS;
   void *handle = dlopen("dyno_simple.so", RTLD_LAZY);
   if (!handle) {
     fprintf(stderr, "dlopen() %s\n", dlerror());
@@ -73,4 +80,5 @@ int main() {
   module_data_t *data = init_module_data();
   module_init(data);
   draw_loop(data, module_update);
+  return EXIT_SUCCESS;
 }

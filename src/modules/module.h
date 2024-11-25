@@ -1,3 +1,6 @@
+#ifndef MODULE_H
+#define MODULE_H
+
 #include <pthread.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -15,3 +18,5 @@ typedef struct _module_data {
   color_t *colors;
   size_t quantity;
 } module_data_t;
+
+#endif

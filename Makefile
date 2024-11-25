@@ -12,7 +12,7 @@ OBJ = $(patsubst $(SRCD)/%.c,$(OBJD)/%.o,$(SRC))
 EXE = $(OUTD)/dyno
 MODULES = simple
 
-CFLAGS = -O3 -Wall
+CFLAGS = -O3 -Wall -DMODULEDIR=\"$(PWD)/$(MODULE_OUTD)\"
 LDFLAGS = -Wl,-rpath,$(PWD)/$(MODULE_OUTD)
 
 all: $(OUTD) $(OBJD) $(MODULE_OUTD) $(EXE) $(MODULES)
