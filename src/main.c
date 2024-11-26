@@ -1,6 +1,5 @@
 #include "modules.h"
 #include "modules/module.h"
-#include <dlfcn.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -61,24 +60,33 @@ void setup_signal_handlers() { signal(SIGINT, handle_sigint); }
 int main() {
   setup_signal_handlers();
   module_t **modules = list_modules();
-  while (*modules) {
-    printf("%s\n", (*modules)->path);
-    modules++;
+  if (!modules) {
+    fprintf(stderr, "no modules found\n");
+    return EXIT_FAILURE;
   }
-  return EXIT_SUCCESS;
-  void *handle = dlopen("dyno_simple.so", RTLD_LAZY);
-  if (!handle) {
-    fprintf(stderr, "dlopen() %s\n", dlerror());
-    exit(1);
+
+  int module_count = 0;
+  while (modules[module_count]) {
+    printf("%d: %s\n", module_count, modules[module_count]->path);
+    module_count++;
   }
-  dlerror();
 
-  int (*module_init)(module_data_t *) =
-      (int (*)(module_data_t *))dlsym(handle, "module_init");
-  int (*module_update)() = (int (*)())dlsym(handle, "module_update");
+  int sel = -1;
+  while (sel < 0 || sel >= module_count) {
+    printf("Select a number: ");
+    scanf("%d", &sel);
+  }
 
+  module_t *module = modules[sel];
   module_data_t *data = init_module_data();
-  module_init(data);
-  draw_loop(data, module_update);
+  if (load_module(module)) {
+    fprintf(stderr, "failed to load module: %s\n", modules[0]->path);
+    return EXIT_FAILURE;
+  }
+
+  // Init and run
+  module->init(data);
+  draw_loop(data, module->update);
+
   return EXIT_SUCCESS;
 }
