@@ -1,3 +1,4 @@
+#include "ipc.h"
 #include "modules.h"
 #include "modules/module.h"
 #include <signal.h>
@@ -63,6 +64,20 @@ int main() {
   if (!modules) {
     fprintf(stderr, "no modules found\n");
     return EXIT_FAILURE;
+  }
+
+  if (ipc_init()) {
+    fprintf(stderr, "failed to init ipc\n");
+    return EXIT_FAILURE;
+  }
+
+  while (true) {
+    command_t *command = ipc_listen();
+    if (command) {
+      printf("%d %d\n", command->type, command->argc);
+    } else {
+      printf(":(\n");
+    }
   }
 
   int module_count = 0;
