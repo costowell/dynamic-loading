@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 
-module_t **list_modules() {
+module_t **list_modules(int *count) {
   module_t **modules = calloc(80, sizeof(module_t *));
   DIR *modules_dir = opendir(MODULEDIR);
   int i = 0;
@@ -24,11 +24,11 @@ module_t **list_modules() {
 
     module_t *module = calloc(1, sizeof(module_t));
     module->path = path;
-    modules[i] = module;
-    i++;
+    modules[i++] = module;
   }
 
   closedir(modules_dir);
+  *count = i;
 
   return modules;
 }

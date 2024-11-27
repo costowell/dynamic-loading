@@ -49,17 +49,16 @@ int parse_command(char *buf, command_t **command) {
 
   argv = calloc(MAX_ARGUMENTS, sizeof(char *));
 
-  while (token != NULL) {
+  while ((token = strtok(NULL, delims)) != NULL) {
     if (argc == MAX_ARGUMENTS) {
       free(argv);
       return 2;
     }
     argv[argc++] = token;
-    token = strtok(NULL, delims);
   }
 
   command_t *c = calloc(1, sizeof(command_t));
-  c->argc = argc - 1;
+  c->argc = argc;
   c->argv = argv;
   c->type = type;
   *command = c;

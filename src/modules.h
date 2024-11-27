@@ -14,7 +14,7 @@ typedef struct _module {
   int (*update)();
 } module_t;
 
-module_t **list_modules();
+module_t **list_modules(int *);
 int load_module(module_t *);
 
 #endif
