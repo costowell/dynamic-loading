@@ -13,7 +13,7 @@ EXE = $(OUTD)/dyno
 MODULES = simple
 
 CFLAGS = -O3 -Wall -DMODULEDIR=\"$(PWD)/$(MODULE_OUTD)\"
-LDFLAGS = -Wl,-rpath,$(PWD)/$(MODULE_OUTD)
+LDFLAGS =
 
 all: $(OUTD) $(OBJD) $(MODULE_OUTD) $(EXE) $(MODULES)
 
