@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+static int module_count;
+static module_t **modules;
+
 void handle_sigint(int sig) {
   cursor_visible(true);
   exit(EXIT_FAILURE);
@@ -24,10 +27,28 @@ int select_module(module_t *module) {
   return draw_thread_start(module);
 }
 
+char *handle_ipc_command(int argc, char **argv) {
+  if (argc == 0)
+    return "invalid command\n";
+
+  if (!strcmp(argv[0], "select") && argc == 2) {
+    int mode = strtol(argv[1], NULL, 10);
+    if (mode <= 0 || mode > module_count) {
+      return "invalid mode number\n";
+    }
+    select_module(modules[mode - 1]);
+  } else if (!strcmp(argv[0], "stop")) {
+    draw_thread_stop();
+  } else {
+    return "invalid command\n";
+  }
+  return "success\n";
+}
+
 int main() {
   setup_signal_handlers();
-  int module_count;
-  module_t **modules = list_modules(&module_count);
+
+  modules = list_modules(&module_count);
   if (!modules) {
     fprintf(stderr, "no modules found\n");
     return EXIT_FAILURE;
@@ -37,23 +58,15 @@ int main() {
     fprintf(stderr, "failed to init ipc\n");
     return EXIT_FAILURE;
   }
-
-  while (true) {
-    command_t *command = ipc_listen();
-    if (command == NULL)
-      continue;
-
-    if (command->type == COMMAND_SELECT && command->argc == 1) {
-      int mode = strtol(command->argv[0], NULL, 10);
-      if (mode <= 0 || mode > module_count) {
-        fprintf(stderr, "invalid mode number\n");
-        continue;
-      }
-      select_module(modules[mode - 1]);
-    } else {
-      fprintf(stderr, "invalid command entered\n");
+  ipc_conn_t *conn;
+  ipc_command_t *cmd;
+  while ((conn = ipc_listen()) != NULL) {
+    while ((cmd = ipc_conn_recv_cmd(conn)) != NULL) {
+      char *msg = handle_ipc_command(cmd->argc, cmd->argv);
+      ipc_conn_send(conn, msg);
+      free(cmd);
     }
+    free(conn);
   }
-
   return EXIT_SUCCESS;
 }

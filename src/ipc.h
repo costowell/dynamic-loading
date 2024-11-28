@@ -10,14 +10,19 @@
 #define BUFFER_SIZE 1024
 #define MAX_ARGUMENTS 16
 
-typedef enum _command_type { COMMAND_SELECT } command_type_t;
-typedef struct _command {
-  command_type_t type;
+typedef struct _ipc_command {
   int argc;
   char **argv;
-} command_t;
+} ipc_command_t;
+
+typedef struct _ipc_conn_t {
+  int socket;
+} ipc_conn_t;
 
 int ipc_init();
-command_t *ipc_listen();
+ipc_conn_t *ipc_listen();
+ipc_command_t *ipc_conn_recv_cmd(ipc_conn_t *);
+int ipc_conn_send(ipc_conn_t *, char *);
+int ipc_conn_close(ipc_conn_t *);
 
 #endif
