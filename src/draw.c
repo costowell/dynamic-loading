@@ -7,8 +7,10 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#define SEC_TO_MICROSEC 1000000.0f
-#define MICROSECONDS_PER_FRAME (1.0f / 60.0f) * SEC_TO_MICROSEC
+#define SEC_TO_NANOSEC 1000000000
+#define USEC_TO_NANOSEC 1000
+#define FRAMES 60
+#define NANOSECS_PER_FRAME ((SEC_TO_NANOSEC) / FRAMES)
 #define COLOR_COUNT 200
 
 static atomic_bool draw_stop;
@@ -17,7 +19,7 @@ static module_data_t *data;
 
 void *draw(module_t *module) {
   struct timeval frame_start, frame_end;
-  double elapsed_us, sleep_us = 0;
+  struct timespec sleep_nanos = {.tv_sec = 0, .tv_nsec = 0};
   cursor_visible(false);
   while (!draw_stop) {
     gettimeofday(&frame_start, NULL);
@@ -30,12 +32,13 @@ void *draw(module_t *module) {
       printf("\033[48;2;%d;%d;%dm ", color->r, color->g, color->b);
     }
     printf("\r");
-    usleep(sleep_us);
     gettimeofday(&frame_end, NULL);
+    nanosleep(&sleep_nanos, NULL);
 
-    elapsed_us = (frame_end.tv_sec - frame_start.tv_sec) * SEC_TO_MICROSEC;
-    elapsed_us += (frame_end.tv_usec - frame_start.tv_usec);
-    sleep_us += MICROSECONDS_PER_FRAME - elapsed_us;
+    sleep_nanos.tv_sec = frame_end.tv_sec - frame_start.tv_sec;
+    sleep_nanos.tv_nsec =
+        NANOSECS_PER_FRAME -
+        (frame_end.tv_usec - frame_start.tv_usec) * USEC_TO_NANOSEC;
   }
   return NULL;
 }
