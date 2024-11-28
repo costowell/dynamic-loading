@@ -40,7 +40,7 @@ int main() {
 
   while (true) {
     command_t *command = ipc_listen();
-    if (command)
+    if (command == NULL)
       continue;
 
     if (command->type == COMMAND_SELECT && command->argc == 1) {

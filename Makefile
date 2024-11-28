@@ -12,8 +12,15 @@ OBJ = $(patsubst $(SRCD)/%.c,$(OBJD)/%.o,$(SRC))
 EXE = $(OUTD)/dyno
 MODULES = simple
 
-CFLAGS = -O3 -Wall -DMODULEDIR=\"$(PWD)/$(MODULE_OUTD)\"
+CFLAGS = -Wall -Wextra -Wfloat-equal -Wundef -Wshadow -Wpointer-arith -Wcast-align -Wswitch-default -Wswitch-enum -Wconversion -DMODULEDIR=\"$(PWD)/$(MODULE_OUTD)\"
 LDFLAGS =
+
+
+debug: CFLAGS += -g3
+debug: all
+
+release: CFLAGS += -O3
+release: all
 
 all: $(OUTD) $(OBJD) $(MODULE_OUTD) $(EXE) $(MODULES)
 

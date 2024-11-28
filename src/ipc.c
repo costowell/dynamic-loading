@@ -42,7 +42,9 @@ int parse_command(char *buf, command_t **command) {
   int argc = 0;
   command_type_t type;
 
-  token = strtok(buf, delims);
+  if ((token = strtok(buf, delims)) == NULL)
+    return 3;
+
   cmd = token;
   if ((type = get_command_type(cmd)) == -1)
     return 1;
@@ -70,6 +72,7 @@ char *errtostr(int num) {
   case 0:
     return "no error";
   case 1:
+  case 3:
     return "invalid command";
   case 2:
     return "maximum number of arguments reached";
