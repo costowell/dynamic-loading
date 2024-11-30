@@ -27,7 +27,7 @@ void *draw(module_t *module) {
       free(data);
       return NULL;
     }
-    for (int i = 0; i < data->quantity; ++i) {
+    for (size_t i = 0; i < data->quantity; ++i) {
       color_t *color = &data->colors[i];
       printf("\033[48;2;%d;%d;%dm ", color->r, color->g, color->b);
     }

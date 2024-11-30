@@ -12,7 +12,7 @@
 static int module_count;
 static module_t **modules;
 
-void handle_sigint(int sig) {
+void handle_sigint() {
   cursor_visible(true);
   exit(EXIT_FAILURE);
 }

@@ -32,7 +32,6 @@ int ipc_init() {
 
 int parse_command(char *buf, ipc_command_t *cmd) {
   char *token, **argv, *delims = " \n";
-  ipc_command_t *c;
   int argc = 0;
 
   argv = calloc(MAX_ARGUMENTS, sizeof(char *));
