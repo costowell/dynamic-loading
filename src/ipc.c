@@ -30,7 +30,7 @@ int ipc_init() {
   return 0;
 }
 
-int parse_command(char *buf, ipc_command_t **command) {
+int parse_command(char *buf, ipc_command_t *cmd) {
   char *token, **argv, *delims = " \n";
   ipc_command_t *c;
   int argc = 0;
@@ -47,10 +47,8 @@ int parse_command(char *buf, ipc_command_t **command) {
     token = strtok(NULL, delims);
   }
 
-  c = calloc(1, sizeof(ipc_command_t));
-  c->argc = argc;
-  c->argv = argv;
-  *command = c;
+  cmd->argc = argc;
+  cmd->argv = argv;
   return 0;
 }
 
@@ -63,30 +61,28 @@ char *errtostr(int num) {
   }
 }
 
-ipc_conn_t *ipc_listen() {
+int ipc_listen(ipc_conn_t *conn) {
   int socket;
 
   if (sockfd == -1) {
     fprintf(stderr, "error: IPC not initialized\n");
-    return NULL;
+    return 1;
   }
 
   socket = accept(sockfd, NULL, NULL);
   if (socket == -1) {
     perror("accept");
-    return NULL;
+    return 2;
   }
 
-  ipc_conn_t *conn = calloc(1, sizeof(ipc_conn_t));
   conn->socket = socket;
-  return conn;
+  return 0;
 }
 
-ipc_command_t *ipc_conn_recv_cmd(ipc_conn_t *conn) {
+int ipc_conn_recv_cmd(ipc_conn_t *conn, ipc_command_t *command) {
   char *buf;
   int ret;
   ssize_t b;
-  ipc_command_t *command = NULL;
 
   buf = calloc(BUFFER_SIZE, sizeof(char));
   b = recv(conn->socket, buf, BUFFER_SIZE * sizeof(char), 0);
@@ -96,10 +92,10 @@ ipc_command_t *ipc_conn_recv_cmd(ipc_conn_t *conn) {
     }
     free(buf);
     close(conn->socket);
-    return NULL;
+    return 1;
   }
 
-  if ((ret = parse_command(buf, &command))) {
+  if ((ret = parse_command(buf, command))) {
     char *errstr = errtostr(ret);
     char msg[256];
     snprintf(msg, 256, "error: %s\n", errstr);
@@ -108,10 +104,11 @@ ipc_command_t *ipc_conn_recv_cmd(ipc_conn_t *conn) {
       perror("send");
       free(buf);
       close(conn->socket);
-      return NULL;
+      return 3;
     }
+    return 2;
   }
-  return command;
+  return 0;
 }
 
 int ipc_conn_send(ipc_conn_t *conn, char *msg) {

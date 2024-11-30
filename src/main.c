@@ -29,10 +29,10 @@ int select_module(module_t *module) {
 
 char *handle_ipc_command(int argc, char **argv) {
   if (argc == 0)
-    return "invalid command\n";
+    return "empty command\n";
 
   if (!strcmp(argv[0], "select") && argc == 2) {
-    int mode = strtol(argv[1], NULL, 10);
+    long mode = strtol(argv[1], NULL, 10);
     if (mode <= 0 || mode > module_count) {
       return "invalid mode number\n";
     }
@@ -58,15 +58,13 @@ int main() {
     fprintf(stderr, "failed to init ipc\n");
     return EXIT_FAILURE;
   }
-  ipc_conn_t *conn;
-  ipc_command_t *cmd;
-  while ((conn = ipc_listen()) != NULL) {
-    while ((cmd = ipc_conn_recv_cmd(conn)) != NULL) {
-      char *msg = handle_ipc_command(cmd->argc, cmd->argv);
-      ipc_conn_send(conn, msg);
-      free(cmd);
+  ipc_conn_t conn;
+  ipc_command_t cmd;
+  while (!ipc_listen(&conn)) {
+    while (!ipc_conn_recv_cmd(&conn, &cmd)) {
+      char *msg = handle_ipc_command(cmd.argc, cmd.argv);
+      ipc_conn_send(&conn, msg);
     }
-    free(conn);
   }
   return EXIT_SUCCESS;
 }
