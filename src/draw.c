@@ -14,10 +14,12 @@
 #define COLOR_COUNT 200
 
 static atomic_bool draw_stop;
+static atomic_bool draw_running;
 static pthread_t draw_thread;
 static module_data_t *data;
 
 void *draw(module_t *module) {
+  draw_running = true;
   struct timeval frame_start, frame_end;
   struct timespec sleep_nanos = {.tv_sec = 0, .tv_nsec = 0};
   cursor_visible(false);
@@ -40,6 +42,7 @@ void *draw(module_t *module) {
         NANOSECS_PER_FRAME -
         (frame_end.tv_usec - frame_start.tv_usec) * USEC_TO_NANOSEC;
   }
+  draw_running = false;
   return NULL;
 }
 
@@ -53,17 +56,21 @@ int draw_thread_start(module_t *module) {
   return pthread_create(&draw_thread, NULL, (void *(*)(void *))draw, module);
 }
 int draw_thread_stop() {
-  int ret;
-  draw_stop = true;
-  ret = pthread_join(draw_thread, NULL);
+  int ret = 0;
+
+  if (draw_running) {
+    draw_stop = true;
+    ret = pthread_join(draw_thread, NULL);
+  }
+
   if (data) {
+    free(data->colors);
     free(data);
     data = NULL;
   }
 
   if (ret) {
     fprintf(stderr, "failed to join thread, error %d\n", ret);
-    free(data);
     return 1;
   }
   return 0;

@@ -6,10 +6,10 @@
 
 #include <stdio.h>
 
-module_t **list_modules(int *count) {
-  module_t **modules = calloc(80, sizeof(module_t *));
+module_t *list_modules(size_t *count) {
+  module_t *modules = calloc(80, sizeof(module_t));
   DIR *modules_dir = opendir(MODULEDIR);
-  int i = 0;
+  size_t i = 0;
   struct dirent *dir;
 
   while ((dir = readdir(modules_dir))) {
@@ -22,9 +22,7 @@ module_t **list_modules(int *count) {
     strcat(path, "/");
     strcat(path, dir->d_name);
 
-    module_t *module = calloc(1, sizeof(module_t));
-    module->path = path;
-    modules[i++] = module;
+    modules[i++].path = path;
   }
 
   closedir(modules_dir);
@@ -34,7 +32,6 @@ module_t **list_modules(int *count) {
 }
 
 int load_module(module_t *module) {
-  printf("%s\n", module->path);
   void *handle = dlopen(module->path, RTLD_LAZY);
   if (!handle) {
     fprintf(stderr, "dlopen() %s\n", dlerror());
@@ -47,5 +44,19 @@ int load_module(module_t *module) {
   module->update = (int (*)())dlsym(handle, "module_update");
   if (module->init == NULL || module->update == NULL)
     return 2;
+  return 0;
+}
+
+int unload_module(module_t *module) {
+  if (!module->handle) {
+    fprintf(stderr, "error: module not loaded\n");
+    return 1;
+  }
+
+  dlclose(module->handle);
+  module->handle = NULL;
+  module->init = NULL;
+  module->update = NULL;
+
   return 0;
 }
