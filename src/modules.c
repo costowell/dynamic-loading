@@ -6,8 +6,15 @@
 
 #include <stdio.h>
 
-module_t *list_modules(size_t *count) {
-  module_t *modules = calloc(80, sizeof(module_t));
+module_array_t *init_module_array() {
+  module_array_t *module_array = calloc(1, sizeof(module_array_t));
+  module_array->count = 0;
+  module_array->modules = calloc(80, sizeof(module_t));
+  return module_array;
+}
+
+module_array_t *list_modules() {
+  module_array_t *module_array = init_module_array();
   DIR *modules_dir = opendir(MODULEDIR);
   size_t i = 0;
   struct dirent *dir;
@@ -22,13 +29,13 @@ module_t *list_modules(size_t *count) {
     strcat(path, "/");
     strcat(path, dir->d_name);
 
-    modules[i++].path = path;
+    module_array->modules[i++].path = path;
   }
 
   closedir(modules_dir);
-  *count = i;
+  module_array->count = i;
 
-  return modules;
+  return module_array;
 }
 
 int load_module(module_t *module) {
@@ -60,3 +67,11 @@ int unload_module(module_t *module) {
 
   return 0;
 }
+
+void free_module_array(module_array_t *arr) {
+  for (size_t i = 0; i < arr->count; ++i) {
+    free_module(&arr->modules[i]);
+  }
+  free(arr->modules);
+}
+void free_module(module_t *module) { free(module->path); }

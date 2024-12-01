@@ -25,5 +25,6 @@ int ipc_listen(ipc_conn_t *);
 int ipc_conn_recv_cmd(ipc_conn_t *, ipc_command_t *);
 int ipc_conn_send(ipc_conn_t *, char *);
 int ipc_conn_close(ipc_conn_t *);
+void free_command(ipc_command_t *);
 
 #endif

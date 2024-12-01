@@ -9,31 +9,28 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-static size_t module_count;
-static module_t *modules;
+static module_array_t *modules;
 static module_t *selected_module = NULL;
 
-int cleanup_selected_module() {
-  if (selected_module && unload_module(selected_module)) {
-    fprintf(stderr, "failed to unload module: %s\n", selected_module->path);
+int deselect_module() {
+  if (!selected_module)
+    return 0;
+  if (draw_thread_stop())
     return 1;
-  }
+  if (unload_module(selected_module))
+    return 2;
   selected_module = NULL;
   return 0;
 }
+
 void cleanup() {
+  int ret = 0;
   cursor_visible(true);
-  draw_thread_stop();
   if (ipc_terminate())
     fprintf(stderr, "failed to safely shutdown IPC... exiting anyways\n");
-  if (draw_thread_stop())
-    fprintf(stderr,
-            "failed to safely shutdown draw thread... exiting anyways\n");
-  if (cleanup_selected_module())
-    fprintf(stderr,
-            "failed to safely unload current module... exiting anyways\n");
-  for (size_t i = 0; i < module_count; ++i)
-    free(modules[i].path);
+  if ((ret = deselect_module()))
+    fprintf(stderr, "failed to deselect module (%d)... exiting anyways\n", ret);
+  free_module_array(modules);
   free(modules);
 }
 
@@ -45,9 +42,7 @@ void handle_sigint() {
 void setup_signal_handlers() { signal(SIGINT, handle_sigint); }
 
 int select_module(module_t *module) {
-  draw_thread_stop();
-  if (cleanup_selected_module())
-    return 2;
+  deselect_module();
   if (load_module(module)) {
     fprintf(stderr, "failed to load module: %s\n", module->path);
     return 1;
@@ -62,13 +57,12 @@ char *handle_ipc_command(int argc, char **argv) {
 
   if (!strcmp(argv[0], "select") && argc == 2) {
     unsigned long mode = strtoul(argv[1], NULL, 10);
-    if (mode == 0 || mode > module_count) {
+    if (mode == 0 || mode > modules->count) {
       return "invalid mode number\n";
     }
-    select_module(&modules[mode - 1]);
+    select_module(&modules->modules[mode - 1]);
   } else if (!strcmp(argv[0], "stop")) {
-    draw_thread_stop();
-    cleanup_selected_module();
+    deselect_module();
   } else {
     return "invalid command\n";
   }
@@ -78,8 +72,8 @@ char *handle_ipc_command(int argc, char **argv) {
 int main() {
   setup_signal_handlers();
 
-  modules = list_modules(&module_count);
-  if (!modules) {
+  modules = list_modules();
+  if (modules->count == 0) {
     fprintf(stderr, "no modules found\n");
     return EXIT_FAILURE;
   }
@@ -97,9 +91,7 @@ int main() {
       exit = cmd.argc == 0;
       char *msg = handle_ipc_command(cmd.argc, cmd.argv);
       ipc_conn_send(&conn, msg);
-      for (int i = 0; i < cmd.argc; ++i)
-        free(cmd.argv[i]);
-      free(cmd.argv);
+      free_command(&cmd);
     }
     ipc_conn_close(&conn);
   }

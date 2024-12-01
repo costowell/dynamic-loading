@@ -137,3 +137,9 @@ int ipc_conn_close(ipc_conn_t *conn) {
   }
   return 0;
 }
+
+void free_command(ipc_command_t *command) {
+  for (int i = 0; i < command->argc; ++i)
+    free(command->argv[i]);
+  free(command->argv);
+}
